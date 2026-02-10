@@ -1404,15 +1404,20 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             Position position = new Position(getProtocolName());
             position.setDeviceId(deviceSession.getDeviceId());
 
-            position.setValid(true);
-            position.setTime(readDate(buf, deviceSession.get(DeviceSession.KEY_TIMEZONE)));
-            position.setLatitude(buf.readInt() * 0.000001);
-            position.setLongitude(buf.readInt() * 0.000001);
-            position.setAltitude(buf.readShort());
-            position.setSpeed(UnitsConverter.knotsFromKph(buf.readUnsignedShort() * 0.1));
-            position.setCourse(buf.readUnsignedShort());
-
-            // TODO more positions and g sensor data
+            if (buf.readableBytes() >= 20) {
+                position.setValid(true);
+                position.setTime(readDate(buf, deviceSession.get(DeviceSession.KEY_TIMEZONE)));
+                position.setLatitude(buf.readInt() * 0.000001);
+                position.setLongitude(buf.readInt() * 0.000001);
+                position.setAltitude(buf.readShort());
+                position.setSpeed(UnitsConverter.knotsFromKph(buf.readUnsignedShort() * 0.1));
+                position.setCourse(buf.readUnsignedShort());
+            } else {
+                getLastLocation(position, null);
+                String data = buf.readCharSequence(
+                        buf.readableBytes(), StandardCharsets.US_ASCII).toString().trim();
+                position.set("data", data);
+            }
 
             return position;
 
