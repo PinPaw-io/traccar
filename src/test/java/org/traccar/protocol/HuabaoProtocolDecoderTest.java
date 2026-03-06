@@ -16,6 +16,10 @@ public class HuabaoProtocolDecoderTest extends ProtocolTest {
                 Position.KEY_RESULT, "WIFI1:koszalin,7a:95:75:09:41:04;\r\nWIFI2:,7a:95:75:09:41:05;\r\nWIFI3:TP-Link_DE6B,5c:a6:e6:ab:de:6b;\r\nWIFI4:Zyxel_A961,ec:3e:b3:c1:a9:61;\r\nWIFI5:NETIASPOT-JzB5,c8:84:cf:5c:aa:f4;\r\nWIFI6:DECO_nowe076,ea:75:0c:9e:60:d4;");
 
         verifyAttribute(decoder, binary(
+                "7e090000210563725133840007ff4f4b214d4143313a3741393537353039343130342c4d4143323a2c4d4143333a"),
+                Position.KEY_RESULT, "OK!MAC1:7A9575094104,MAC2:,MAC3:");
+
+        verifyAttribute(decoder, binary(
                 "7e0200004d794308010679013800000000022c004e01819568036ef38c005c00120000251118112611d40164d50201a230011d31010cf40104f9020007fe0400000090fd0a02e8000400044a150fe6ef014a0b062200623a4965977e"),
                 Position.KEY_BATTERY_LEVEL, 100);
 

@@ -1405,16 +1405,17 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             position.setDeviceId(deviceSession.getDeviceId());
 
             int readable = buf.readableBytes();
-            boolean isWifi = readable >= 4
-                    && buf.getUnsignedByte(buf.readerIndex()) == 'W'
-                    && buf.getUnsignedByte(buf.readerIndex() + 1) == 'I'
-                    && buf.getUnsignedByte(buf.readerIndex() + 2) == 'F'
-                    && buf.getUnsignedByte(buf.readerIndex() + 3) == 'I';
+            int firstByte = readable > 0 ? buf.getUnsignedByte(buf.readerIndex()) : 0;
+            boolean isText = firstByte >= 0x20 && firstByte <= 0x7E;
 
-            if (isWifi) {
+            if (isText) {
                 getLastLocation(position, null);
                 String data = buf.readCharSequence(readable, StandardCharsets.US_ASCII).toString().trim();
-                position.set(Position.KEY_RESULT, data);
+                if (data.startsWith("WIFI") || data.startsWith("OK!") || data.startsWith("ADDMAC")) {
+                    position.set(Position.KEY_RESULT, data);
+                } else {
+                    position.set("data", data);
+                }
             } else if (readable >= 20) {
                 position.setValid(true);
                 position.setTime(readDate(buf, deviceSession.get(DeviceSession.KEY_TIMEZONE)));
