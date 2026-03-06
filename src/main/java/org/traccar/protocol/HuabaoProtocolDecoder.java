@@ -1404,7 +1404,18 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             Position position = new Position(getProtocolName());
             position.setDeviceId(deviceSession.getDeviceId());
 
-            if (buf.readableBytes() >= 20) {
+            int readable = buf.readableBytes();
+            boolean isWifi = readable >= 4
+                    && buf.getUnsignedByte(buf.readerIndex()) == 'W'
+                    && buf.getUnsignedByte(buf.readerIndex() + 1) == 'I'
+                    && buf.getUnsignedByte(buf.readerIndex() + 2) == 'F'
+                    && buf.getUnsignedByte(buf.readerIndex() + 3) == 'I';
+
+            if (isWifi) {
+                getLastLocation(position, null);
+                String data = buf.readCharSequence(readable, StandardCharsets.US_ASCII).toString().trim();
+                position.set(Position.KEY_RESULT, data);
+            } else if (readable >= 20) {
                 position.setValid(true);
                 position.setTime(readDate(buf, deviceSession.get(DeviceSession.KEY_TIMEZONE)));
                 position.setLatitude(buf.readInt() * 0.000001);
@@ -1415,12 +1426,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             } else {
                 getLastLocation(position, null);
                 String data = buf.readCharSequence(
-                        buf.readableBytes(), StandardCharsets.US_ASCII).toString().trim();
-                if (data.startsWith("WIFI")) {
-                    position.set(Position.KEY_RESULT, data);
-                } else {
-                    position.set("data", data);
-                }
+                        readable, StandardCharsets.US_ASCII).toString().trim();
+                position.set("data", data);
             }
 
             return position;
