@@ -1416,7 +1416,11 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 getLastLocation(position, null);
                 String data = buf.readCharSequence(
                         buf.readableBytes(), StandardCharsets.US_ASCII).toString().trim();
-                position.set("data", data);
+                if (data.startsWith("WIFI")) {
+                    position.set(Position.KEY_RESULT, data);
+                } else {
+                    position.set("data", data);
+                }
             }
 
             return position;
