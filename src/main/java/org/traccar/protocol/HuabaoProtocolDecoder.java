@@ -78,6 +78,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_CONFIGURATION_PARAMETERS = 0x8103;
     public static final int MSG_COMMAND_RESPONSE = 0x0701;
     public static final int MSG_DRIVER_IDENTITY = 0x0702;
+    public static final int MSG_SLEEP = 0x0FA0;
 
     public static final int RESULT_SUCCESS = 0;
 
@@ -331,6 +332,23 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                 position.set(Position.KEY_BATTERY_LEVEL, buf.readUnsignedByte());
                 position.set(Position.KEY_RSSI, buf.readUnsignedByte());
                 position.set(Position.KEY_STATUS, buf.readUnsignedByte());
+
+                return position;
+            }
+
+        } else if (type == MSG_SLEEP) {
+
+            sendGeneralResponse(channel, remoteAddress, id, type, index);
+
+            if (buf.readableBytes() >= 12 + 1) {
+                Position position = new Position(getProtocolName());
+                position.setDeviceId(deviceSession.getDeviceId());
+
+                getLastLocation(position, null);
+
+                buf.skipBytes(4);
+                position.set(Position.KEY_BATTERY, buf.readUnsignedShort() * 0.001);
+                position.set(Position.KEY_BATTERY_LEVEL, buf.readUnsignedByte());
 
                 return position;
             }
