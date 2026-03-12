@@ -346,9 +346,13 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
                 getLastLocation(position, null);
 
-                buf.skipBytes(4);
-                position.set(Position.KEY_BATTERY, buf.readUnsignedShort() * 0.001);
+                position.set("soundSwitch", buf.readUnsignedByte());
+                position.set("lightSwitch", buf.readUnsignedByte());
+                buf.skipBytes(4); // 4 bytes: steps (reserved)
                 position.set(Position.KEY_BATTERY_LEVEL, buf.readUnsignedByte());
+                position.set(Position.KEY_CHARGE, buf.readUnsignedByte() > 0);
+                position.set(Position.KEY_MOTION, buf.readUnsignedByte() > 0);
+                position.set("dailyExerciseTime", buf.readUnsignedShort());
 
                 return position;
             }
