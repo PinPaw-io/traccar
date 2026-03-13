@@ -58,7 +58,9 @@ public final class NewMotionProcessor {
         if (state.getMotionStreak()) {
             for (var iterator = positions.descendingIterator(); iterator.hasNext();) {
                 Position candidate = iterator.next();
-                double distance = DistanceCalculator.distance(candidate, position);
+                double distance = DistanceCalculator.distance(
+                        candidate.getLatitude(), candidate.getLongitude(),
+                        position.getLatitude(), position.getLongitude());
                 if (distance >= minDistance) {
                     return;
                 }
@@ -67,7 +69,9 @@ public final class NewMotionProcessor {
             Position oldest = positions.peekFirst();
             long duration = position.getFixTime().getTime() - oldest.getFixTime().getTime();
             if (duration >= minDuration) {
-                double spread = DistanceCalculator.distance(oldest, position);
+                double spread = DistanceCalculator.distance(
+                        oldest.getLatitude(), oldest.getLongitude(),
+                        position.getLatitude(), position.getLongitude());
                 if (spread < minDistance * 0.25) {
                     state.setMotionStreak(false);
                     addEvent(state, events, Event.TYPE_DEVICE_STOPPED, position);
@@ -85,7 +89,9 @@ public final class NewMotionProcessor {
                 for (var iterator = positions.descendingIterator(); iterator.hasNext();) {
                     Position candidate = iterator.next();
                     boolean beforeStop = !candidate.getFixTime().after(state.getEventTime());
-                    double legDistance = DistanceCalculator.distance(candidate, next);
+                    double legDistance = DistanceCalculator.distance(
+                            candidate.getLatitude(), candidate.getLongitude(),
+                            next.getLatitude(), next.getLongitude());
                     long legDuration = next.getFixTime().getTime() - candidate.getFixTime().getTime();
                     boolean legMoving = legDuration > 0 && legDistance / legDuration > backtrackMinSpeed;
                     if (beforeStop || next != position && !legMoving) {
