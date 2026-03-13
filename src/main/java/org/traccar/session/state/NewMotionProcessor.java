@@ -44,15 +44,13 @@ public final class NewMotionProcessor {
         Position last = positions.peekLast();
         if (last != null) {
             long gap = position.getFixTime().getTime() - last.getFixTime().getTime();
-            double gapDistance = position.getDouble(Position.KEY_DISTANCE);
-            double gapAverageSpeed = gap > 0 ? gapDistance / gap : Double.NaN;
-            if (gap > stopGap && gapDistance >= minDistance && gapAverageSpeed > minAverageSpeed) {
+            if (gap > stopGap) {
                 if (state.getMotionStreak()) {
                     addEvent(state, events, Event.TYPE_DEVICE_STOPPED, last);
+                    state.setMotionStreak(false);
                 }
-                addEvent(state, events, Event.TYPE_DEVICE_MOVING, last);
-                addEvent(state, events, Event.TYPE_DEVICE_STOPPED, position);
-                state.setMotionStreak(false);
+                state.setEventPosition(position);
+                positions.clear();
                 return;
             }
         }

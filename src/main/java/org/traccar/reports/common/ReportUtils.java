@@ -306,13 +306,10 @@ public class ReportUtils {
         Map<Long, Position> positionMap = new HashMap<>();
         Position startPosition = null;
         double maxSpeed = 0;
+        List<Position> filteredPositions = null;
         var positions = PositionUtil.getPositions(storage, device.getId(), from, to);
         if (!positions.isEmpty()) {
             boolean initialValue = positions.get(0).getBoolean(Position.KEY_MOTION);
-            if (initialValue == trips) {
-                startPosition = positions.get(0);
-                maxSpeed = startPosition.getSpeed();
-            }
 
             if (useNewLogic) {
                 double minDistance = AttributeUtil.lookup(attributeProvider, Keys.REPORT_TRIP_MIN_DISTANCE);
@@ -320,7 +317,7 @@ public class ReportUtils {
                 long stopGap = AttributeUtil.lookup(attributeProvider, Keys.REPORT_TRIP_STOP_GAP) * 1000;
 
                 // Filter out invalid GPS positions and duplicate fixTime entries
-                List<Position> filteredPositions = new ArrayList<>();
+                filteredPositions = new ArrayList<>();
                 Date lastFixTime = null;
                 for (Position p : positions) {
                     positionMap.put(p.getId(), p);
@@ -338,7 +335,7 @@ public class ReportUtils {
                     Deque<Position> motionPositions = new ArrayDeque<>();
                     NewMotionState motionState = new NewMotionState();
                     motionState.setPositions(motionPositions);
-                    motionState.setMotionStreak(filteredPositions.get(0).getBoolean(Position.KEY_MOTION));
+                    motionState.setMotionStreak(false);
                     motionState.setEventPosition(filteredPositions.get(0));
 
                     for (Position position : filteredPositions) {
@@ -392,6 +389,10 @@ public class ReportUtils {
                 }
                 events = mergedEvents;
             } else {
+                if (initialValue == trips) {
+                    startPosition = positions.get(0);
+                    maxSpeed = startPosition.getSpeed();
+                }
                 MotionState motionState = new MotionState();
                 motionState.setMotionStreak(initialValue);
                 motionState.setMotionState(initialValue);
@@ -428,7 +429,9 @@ public class ReportUtils {
         }
 
         if (startPosition != null) {
-            Position endPosition = positions.get(positions.size() - 1);
+            Position endPosition = (useNewLogic && filteredPositions != null && !filteredPositions.isEmpty())
+                    ? filteredPositions.get(filteredPositions.size() - 1)
+                    : positions.get(positions.size() - 1);
             result.add(calculateTripOrStop(
                     device, startPosition, endPosition, maxSpeed, ignoreOdometer, reportClass));
         }
