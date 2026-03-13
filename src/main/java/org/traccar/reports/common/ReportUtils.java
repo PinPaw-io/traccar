@@ -56,6 +56,9 @@ import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Order;
 import org.traccar.storage.query.Request;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -70,6 +73,8 @@ import java.util.Locale;
 import java.util.Map;
 
 public class ReportUtils {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReportUtils.class);
 
     private final Config config;
     private final Storage storage;
@@ -301,6 +306,7 @@ public class ReportUtils {
         boolean ignoreOdometer = tripsConfig.getIgnoreOdometer();
         boolean trips = reportClass.equals(TripReportItem.class);
         boolean useNewLogic = config.getBoolean(Keys.REPORT_TRIP_NEW_LOGIC);
+        LOGGER.info("[TRIP-DEBUG] slowTripsAndStops called, useNewLogic={}, device={}", useNewLogic, device.getName());
 
         List<Event> events = new ArrayList<>();
         Map<Long, Position> positionMap = new HashMap<>();
