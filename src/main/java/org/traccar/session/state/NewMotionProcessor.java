@@ -67,8 +67,11 @@ public final class NewMotionProcessor {
             Position oldest = positions.peekFirst();
             long duration = position.getFixTime().getTime() - oldest.getFixTime().getTime();
             if (duration >= minDuration) {
-                state.setMotionStreak(false);
-                addEvent(state, events, Event.TYPE_DEVICE_STOPPED, position);
+                double spread = DistanceCalculator.distance(oldest, position);
+                if (spread < minDistance * 0.25) {
+                    state.setMotionStreak(false);
+                    addEvent(state, events, Event.TYPE_DEVICE_STOPPED, position);
+                }
             }
         } else {
             double distance = DistanceCalculator.distance(
@@ -78,12 +81,13 @@ public final class NewMotionProcessor {
                 state.setMotionStreak(true);
                 Position startPosition = position;
                 Position next = position;
+                double backtrackMinSpeed = minAverageSpeed * 0.25;
                 for (var iterator = positions.descendingIterator(); iterator.hasNext();) {
                     Position candidate = iterator.next();
                     boolean beforeStop = !candidate.getFixTime().after(state.getEventTime());
                     double legDistance = DistanceCalculator.distance(candidate, next);
                     long legDuration = next.getFixTime().getTime() - candidate.getFixTime().getTime();
-                    boolean legMoving = legDuration > 0 && legDistance / legDuration > minAverageSpeed;
+                    boolean legMoving = legDuration > 0 && legDistance / legDuration > backtrackMinSpeed;
                     if (beforeStop || next != position && !legMoving) {
                         break;
                     }
