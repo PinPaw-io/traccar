@@ -318,36 +318,79 @@ public class ReportUtils {
                 double minDistance = AttributeUtil.lookup(attributeProvider, Keys.REPORT_TRIP_MIN_DISTANCE);
                 long minDuration = AttributeUtil.lookup(attributeProvider, Keys.REPORT_TRIP_MIN_DURATION) * 1000;
                 long stopGap = AttributeUtil.lookup(attributeProvider, Keys.REPORT_TRIP_STOP_GAP) * 1000;
-                Deque<Position> motionPositions = new ArrayDeque<>();
-                NewMotionState motionState = new NewMotionState();
-                motionState.setPositions(motionPositions);
-                motionState.setMotionStreak(initialValue);
-                motionState.setEventPosition(positions.get(0));
 
-                for (Position position : positions) {
-                    maxSpeed = Math.max(maxSpeed, position.getSpeed());
-                    positionMap.put(position.getId(), position);
-                    NewMotionProcessor.updateState(motionState, position, minDistance, minDuration, stopGap);
-                    if (!motionState.getEvents().isEmpty()) {
-                        for (Event event : motionState.getEvents()) {
-                            event.set("maxSpeed", maxSpeed);
-                            events.add(event);
-                        }
-                        maxSpeed = 0;
+                // Filter out invalid GPS positions and duplicate fixTime entries
+                List<Position> filteredPositions = new ArrayList<>();
+                Date lastFixTime = null;
+                for (Position p : positions) {
+                    positionMap.put(p.getId(), p);
+                    if (!p.getValid()) {
+                        continue;
                     }
-                    motionPositions.add(position);
-                    while (motionPositions.size() > 1) {
-                        var iterator = motionPositions.iterator();
-                        iterator.next();
-                        Position second = iterator.next();
-                        Position last = motionPositions.peekLast();
-                        if (last.getFixTime().getTime() - second.getFixTime().getTime() >= minDuration) {
-                            motionPositions.poll();
-                        } else {
-                            break;
+                    if (lastFixTime != null && p.getFixTime().equals(lastFixTime)) {
+                        continue;
+                    }
+                    filteredPositions.add(p);
+                    lastFixTime = p.getFixTime();
+                }
+
+                if (!filteredPositions.isEmpty()) {
+                    Deque<Position> motionPositions = new ArrayDeque<>();
+                    NewMotionState motionState = new NewMotionState();
+                    motionState.setPositions(motionPositions);
+                    motionState.setMotionStreak(filteredPositions.get(0).getBoolean(Position.KEY_MOTION));
+                    motionState.setEventPosition(filteredPositions.get(0));
+
+                    for (Position position : filteredPositions) {
+                        maxSpeed = Math.max(maxSpeed, position.getSpeed());
+                        NewMotionProcessor.updateState(motionState, position, minDistance, minDuration, stopGap);
+                        if (!motionState.getEvents().isEmpty()) {
+                            for (Event event : motionState.getEvents()) {
+                                event.set("maxSpeed", maxSpeed);
+                                events.add(event);
+                            }
+                            maxSpeed = 0;
+                        }
+                        motionPositions.add(position);
+                        while (motionPositions.size() > 1) {
+                            var iterator = motionPositions.iterator();
+                            iterator.next();
+                            Position second = iterator.next();
+                            Position last = motionPositions.peekLast();
+                            if (last.getFixTime().getTime() - second.getFixTime().getTime() >= minDuration) {
+                                motionPositions.poll();
+                            } else {
+                                break;
+                            }
                         }
                     }
                 }
+
+                // Merge short stops: remove STOPPED→MOVING pairs closer than stopGap
+                List<Event> mergedEvents = new ArrayList<>();
+                double carriedMaxSpeed = 0;
+                for (int i = 0; i < events.size(); i++) {
+                    if (i + 1 < events.size()
+                            && events.get(i).getType().equals(Event.TYPE_DEVICE_STOPPED)
+                            && events.get(i + 1).getType().equals(Event.TYPE_DEVICE_MOVING)) {
+                        long pauseDuration = events.get(i + 1).getEventTime().getTime()
+                                - events.get(i).getEventTime().getTime();
+                        if (pauseDuration < stopGap) {
+                            carriedMaxSpeed = Math.max(carriedMaxSpeed,
+                                    Math.max(events.get(i).getDouble("maxSpeed"),
+                                            events.get(i + 1).getDouble("maxSpeed")));
+                            i++;
+                            continue;
+                        }
+                    }
+                    if (carriedMaxSpeed > 0) {
+                        events.get(i).set("maxSpeed",
+                                Math.max(events.get(i).getDouble("maxSpeed"), carriedMaxSpeed));
+                        carriedMaxSpeed = 0;
+                    }
+                    mergedEvents.add(events.get(i));
+                }
+                events = mergedEvents;
             } else {
                 MotionState motionState = new MotionState();
                 motionState.setMotionStreak(initialValue);
