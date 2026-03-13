@@ -88,7 +88,7 @@ public final class NewMotionProcessor {
                 double backtrackMinSpeed = minAverageSpeed * 0.25;
                 for (var iterator = positions.descendingIterator(); iterator.hasNext();) {
                     Position candidate = iterator.next();
-                    boolean beforeStop = !candidate.getFixTime().after(state.getEventTime());
+                    boolean beforeStop = candidate.getFixTime().before(state.getEventTime());
                     double legDistance = DistanceCalculator.distance(
                             candidate.getLatitude(), candidate.getLongitude(),
                             next.getLatitude(), next.getLongitude());
