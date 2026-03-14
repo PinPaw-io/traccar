@@ -449,10 +449,11 @@ public class ReportUtils {
             Device device, Date from, Date to, Class<T> reportClass) throws StorageException {
 
         List<T> result = new ArrayList<>();
-        TripsConfig tripsConfig = new TripsConfig(
-                new AttributeUtil.StorageProvider(config, storage, permissionsService, device));
+        var attributeProvider = new AttributeUtil.StorageProvider(config, storage, permissionsService, device);
+        TripsConfig tripsConfig = new TripsConfig(attributeProvider);
         boolean ignoreOdometer = tripsConfig.getIgnoreOdometer();
         boolean trips = reportClass.equals(TripReportItem.class);
+        boolean useNewLogic = config.getBoolean(Keys.REPORT_TRIP_NEW_LOGIC);
 
         var events = storage.getObjects(Event.class, new Request(
                 new Columns.All(),
@@ -464,12 +465,34 @@ public class ReportUtils {
                                 new Condition.Equals("type", Event.TYPE_DEVICE_STOPPED)))),
                 new Order("eventTime")));
 
+        List<Event> processedEvents;
+        if (useNewLogic) {
+            long stopGap = AttributeUtil.lookup(attributeProvider, Keys.REPORT_TRIP_STOP_GAP) * 1000;
+            List<Event> mergedEvents = new ArrayList<>();
+            for (int i = 0; i < events.size(); i++) {
+                if (i + 1 < events.size()
+                        && events.get(i).getType().equals(Event.TYPE_DEVICE_STOPPED)
+                        && events.get(i + 1).getType().equals(Event.TYPE_DEVICE_MOVING)) {
+                    long pauseDuration = events.get(i + 1).getEventTime().getTime()
+                            - events.get(i).getEventTime().getTime();
+                    if (pauseDuration < stopGap) {
+                        i++;
+                        continue;
+                    }
+                }
+                mergedEvents.add(events.get(i));
+            }
+            processedEvents = mergedEvents;
+        } else {
+            processedEvents = events;
+        }
+
         Position startPosition = PositionUtil.getEdgePosition(storage, device.getId(), from, to, false);
         if (startPosition != null && !startPosition.getBoolean(Position.KEY_MOTION)) {
             startPosition = null;
         }
 
-        for (Event event : events) {
+        for (Event event : processedEvents) {
             boolean motion = event.getType().equals(Event.TYPE_DEVICE_MOVING);
             if (motion == trips) {
                 startPosition = storage.getObject(Position.class, new Request(
