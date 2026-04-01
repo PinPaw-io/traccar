@@ -66,6 +66,7 @@ public class Event extends Message {
     public static final String TYPE_MAINTENANCE = "maintenance";
     public static final String TYPE_DRIVER_CHANGED = "driverChanged";
     public static final String TYPE_MEDIA = "media";
+    public static final String TYPE_HEARTBEAT = "heartbeat";
 
     private Date eventTime;
 
