@@ -30,12 +30,12 @@ public class HeartbeatEventHandler extends BaseEventHandler {
         Object messageType = position.getAttributes().get("messageType");
         if ("heartbeat".equals(messageType)) {
             Event event = new Event(Event.TYPE_HEARTBEAT, position);
-            event.set("batteryLevel", position.getAttributes().get("batteryLevel"));
-            event.set("charge", position.getAttributes().get("charge"));
-            event.set("motion", position.getAttributes().get("motion"));
-            event.set("dailyExerciseTime", position.getAttributes().get("dailyExerciseTime"));
-            event.set("soundSwitch", position.getAttributes().get("soundSwitch"));
-            event.set("lightSwitch", position.getAttributes().get("lightSwitch"));
+            event.set("batteryLevel", position.getDouble("batteryLevel"));
+            event.set("charge", position.getBoolean("charge"));
+            event.set("motion", position.getBoolean("motion"));
+            event.set("dailyExerciseTime", position.getInteger("dailyExerciseTime"));
+            event.set("soundSwitch", position.getBoolean("soundSwitch"));
+            event.set("lightSwitch", position.getBoolean("lightSwitch"));
             callback.eventDetected(event);
         }
     }
