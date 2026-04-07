@@ -1439,11 +1439,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
             if (isText) {
                 getLastLocation(position, null);
                 String data = buf.readCharSequence(readable, StandardCharsets.US_ASCII).toString().trim();
-                if (data.startsWith("WIFI") || data.startsWith("OK!") || data.startsWith("ADDMAC")) {
-                    position.set(Position.KEY_RESULT, data);
-                } else {
-                    position.set("data", data);
-                }
+                position.set(Position.KEY_RESULT, data);
             } else if (readable >= 20) {
                 position.setValid(true);
                 position.setTime(readDate(buf, deviceSession.get(DeviceSession.KEY_TIMEZONE)));
